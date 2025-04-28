@@ -1,0 +1,11 @@
+{
+  "name": "earthquake-api",
+  "version": "1.0.0",
+  "description": "Emergency Earthquake Intensity API",
+  "scripts": {
+    "start": "vercel dev"
+  },
+  "engines": {
+    "node": ">=14"
+  }
+}
