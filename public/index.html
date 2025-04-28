@@ -40,21 +40,27 @@
         data = JSON.parse(inputJson);
       } catch (e) {
         console.error('JSON parse error:', e);
-        document.getElementById('jsonOutput').textContent = JSON.stringify({ error: '無効なJSON形式です' }, null, 2);
+        document.getElementById('jsonOutput').textContent = JSON.stringify({ error: '無効なJSON形式です: ' + e.message }, null, 2);
         return;
       }
 
       try {
-        const response = await fetch('/api/earthquake', {
+        // デプロイURLに合わせて変更（例：https://quake-api.vercel.app）
+        const apiUrl = '/api/earthquake'; // 本番では 'https://quake-api.vercel.app/api/earthquake'
+        console.log('Sending request to:', apiUrl);
+        const response = await fetch(apiUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(data)
         });
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
         const result = await response.json();
         document.getElementById('jsonOutput').textContent = JSON.stringify(result, null, 2);
       } catch (e) {
         console.error('API call failed:', e);
-        document.getElementById('jsonOutput').textContent = JSON.stringify({ error: 'API呼び出しに失敗しました' }, null, 2);
+        document.getElementById('jsonOutput').textContent = JSON.stringify({ error: 'API呼び出しに失敗しました: ' + e.message }, null, 2);
       }
     }
 
