@@ -62,7 +62,7 @@ function haversineDistance(lat1, lon1, lat2, lon2) {
 
 // 震度計算（日本向け距離減衰式＋地盤増幅）
 function computeSeismicIntensity(magnitude, distance, depth) {
-  console.log(`Calculating intensity: M=${magnitude}, D=${distance}, Depth=${depth}`);
+  console.log(`[API] Calculating intensity: M=${magnitude}, D=${distance}, Depth=${depth}`);
   // 震源距離 R = sqrt(D^2 + h^2)
   const hypoDistance = Math.sqrt(distance ** 2 + depth ** 2);
   // PGA計算: log10(PGA) = 0.5*M - log10(R + 10) - 0.003*R + 0.2
@@ -77,24 +77,27 @@ function computeSeismicIntensity(magnitude, distance, depth) {
   // 範囲制限
   if (intensity < 0) intensity = 0;
   if (intensity > 7) {
-    console.warn(`High intensity detected: ${intensity} for R=${hypoDistance}`);
+    console.warn(`[API] High intensity detected: ${intensity} for R=${hypoDistance}`);
     intensity = 7;
   }
-  console.log(`PGA=${pga.toFixed(2)} cm/s^2, AmplifiedPGA=${amplifiedPGA.toFixed(2)} cm/s^2, Intensity=${intensity}`);
+  console.log(`[API] PGA=${pga.toFixed(2)} cm/s^2, AmplifiedPGA=${amplifiedPGA.toFixed(2)} cm/s^2, Intensity=${intensity}`);
   return intensity;
 }
 
 // APIハンドラ
 module.exports = async (req, res) => {
+  console.log('[API] Received request:', req.method, req.url);
   if (req.method !== 'POST') {
+    console.error('[API] Method not allowed:', req.method);
     return res.status(405).json({ error: 'Method not allowed. Use POST.' });
   }
 
   let data;
   try {
     data = req.body;
+    console.log('[API] Request body:', data);
   } catch (e) {
-    console.error('JSON parse error:', e);
+    console.error('[API] JSON parse error:', e);
     return res.status(400).json({ error: 'Invalid JSON format' });
   }
 
@@ -106,11 +109,11 @@ module.exports = async (req, res) => {
       typeof latitude !== 'number' || latitude < -90 || latitude > 90 ||
       typeof longitude !== 'number' || longitude < -180 || longitude > 180 ||
       typeof depth !== 'number' || depth < 0) {
-    console.error('Invalid input parameters:', data);
+    console.error('[API] Invalid input parameters:', data);
     return res.status(400).json({ error: 'Invalid or out-of-range parameters' });
   }
 
-  console.log('Processing prefectures');
+  console.log('[API] Processing prefectures');
   try {
     const intensities = prefectures.map(pref => {
       const distance = haversineDistance(latitude, longitude, pref.lat, pref.lon);
@@ -118,7 +121,7 @@ module.exports = async (req, res) => {
       return { prefecture: pref.name, intensity };
     });
 
-    console.log('Sorting intensities');
+    console.log('[API] Sorting intensities');
     const significant = intensities.filter(i => i.intensity >= 1)
                                   .sort((a, b) => b.intensity - a.intensity);
     const negligible = intensities.filter(i => i.intensity < 1)
@@ -138,10 +141,10 @@ module.exports = async (req, res) => {
       timestamp: new Date().toISOString()
     };
 
-    console.log('Output generated:', output);
+    console.log('[API] Output generated:', output);
     return res.status(200).json(output);
   } catch (e) {
-    console.error('Computation error:', e);
+    console.error('[API] Computation error:', e);
     return res.status(500).json({ error: 'Internal server error' });
   }
 };
